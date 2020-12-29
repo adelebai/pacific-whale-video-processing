@@ -1,1 +1,4 @@
 /data
+/surfacing_clips
+/temp_*
+**/*.pyc

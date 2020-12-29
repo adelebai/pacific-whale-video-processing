@@ -8,16 +8,7 @@ import os
 from PIL import Image
 from numpy import asarray
 
-import model.model_pytorch
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
-def get_resnet18():
-  model = models.resnet18(pretrained=True)
-  num_ftrs = model.fc.in_features
-  model.fc = nn.Linear(num_ftrs, 2)
-  return model
+from model.model_pytorch import model_pytorch
 
 def convert_original_video_to_scaled(original_video, scaled_video, scale=224):
   os.system("ffmpeg -i {0} -vf scale={1}:{1} {2}".format(original_video, scale, scaled_video))
@@ -32,11 +23,13 @@ def frames_to_ts(frame_number, fps=30):
 def get_final_image_name(original_vid, out_dir, frame, number):
   # File name templae: Species_Location_Date_OriginalVideoframe#_screencapture#_VideoTimeStamp(MMSS)
   # File name example: MN_HI_20200824_0001_001_0301
-  original_vid_name = original_vid.split(".")[0]
+  original_vid_name = os.path.basename(original_vid).split(".")[0]
 
   return os.path.join(out_dir, "{}_{:02d}_{}".format(original_vid_name, number, frames_to_ts(frame)))
 
 def extract_frame_range_clip(temp_dir, ranges, original_vid):
+  base_video_name = os.path.basename(original_vid)
+
   # construct range query
   # limit to 3 max at a time to save CPU and prevent crashing.
   number_of_clips = len(ranges)
@@ -45,7 +38,7 @@ def extract_frame_range_clip(temp_dir, ranges, original_vid):
   while current_point < number_of_clips:
     q = ""
     for r in ranges[current_point:min(number_of_clips, current_point+3)]:
-      q += " -ss {0} -t {1} {2}".format(r[0], r[1]-r[0], os.path.join(temp_dir,"{0}_Surface{1}-{2}.mp4".format(original_vid, r[0], r[1])))
+      q += " -ss {0} -t {1} {2}".format(r[0], r[1]-r[0], os.path.join(temp_dir,"{0}_Surface{1}-{2}.mp4".format(base_video_name, r[0], r[1])))
 
     os.system("ffmpeg {1} -i {0}".format(original_vid, q))
     current_point += 3
@@ -115,7 +108,7 @@ def preds_to_range(preds):
   return ranges
 
 def run(original_video, output_dir, surface_model, quality_model, input_dir=None):
-  original_video_name = original_video.split(".")[0]
+  original_video_name = os.path.basename(original_video).split(".")[0]
   # temp dirs
   temp_dir1 = "temp_seconds"
   temp_dir2 = "temp_surface"
@@ -188,7 +181,7 @@ def run(original_video, output_dir, surface_model, quality_model, input_dir=None
   quality_preds = [] # contains the frame numbers that have preds
   for f in dirs:
     image_path = os.path.join(surface_temp_dir, f)
-    quality_pred = quality_model(image_path)
+    quality_pred = quality_model.predict(image_path)
 
     if quality_pred == 1:
       quality_preds.append(int(f.split('.')[0])) # append frame number

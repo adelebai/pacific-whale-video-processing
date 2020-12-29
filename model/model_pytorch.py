@@ -8,11 +8,13 @@ from torch import argmax
 from torch.optim import lr_scheduler
 from torchvision import datasets, models, transforms
 
-from model import model
+from model.model_base import model_base
 
 # implementation of model on pytorch.
-class model_pytorch(model):
+class model_pytorch(model_base):
   def __init__(self, model_name):
+    model_base.__init__(self) # init base class
+
     #set gpu
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
