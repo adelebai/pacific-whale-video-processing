@@ -9,12 +9,7 @@ from PIL import Image
 from numpy import asarray
 
 from model.model_pytorch import model_pytorch
-
-def convert_original_video_to_scaled(original_video, scaled_video, scale=224):
-  os.system("ffmpeg -i {0} -vf scale={1}:{1} {2}".format(original_video, scale, scaled_video))
-
-def extract_per_second_frames(temp_dir, scaled_video, fps=30):
-  os.system("ffmpeg -i {0} -r 1/1 {1}.png".format(scaled_video, os.path.join(temp_dir, "%03d")))
+from video.ffmpeg_processor import ffmpeg_processor
 
 def frames_to_ts(frame_number, fps=30):
   span = timedelta(milliseconds= frame_number*1000/fps)
@@ -27,37 +22,8 @@ def get_final_image_name(original_vid, out_dir, frame, number):
 
   return os.path.join(out_dir, "{}_{:02d}_{}".format(original_vid_name, number, frames_to_ts(frame)))
 
-def extract_frame_range_clip(temp_dir, ranges, original_vid):
-  base_video_name = os.path.basename(original_vid)
-
-  # construct range query
-  # limit to 3 max at a time to save CPU and prevent crashing.
-  number_of_clips = len(ranges)
-  max_per_call = 5
-  current_point = 0
-  while current_point < number_of_clips:
-    q = ""
-    for r in ranges[current_point:min(number_of_clips, current_point+3)]:
-      q += " -ss {0} -t {1} {2}".format(r[0], r[1]-r[0], os.path.join(temp_dir,"{0}_Surface{1}-{2}.mp4".format(base_video_name, r[0], r[1])))
-
-    os.system("ffmpeg {1} -i {0}".format(original_vid, q))
-    current_point += 3
-
-# ranges is a list of tuples with start/end timestamps
-def extract_frame_range(temp_dir, ranges, scaled_vid):
-  # construct range query
-  q = "between(t\,{0}\,{1})".format(ranges[0][0], ranges[0][1])
-  for r in ranges[1:]:
-    q += "+between(t\,{0}\,{1})".format(r[0], r[1])
-
-  os.system("ffmpeg -i {0} -vf select='{1}' -vsync 0 -frame_pts 1 {2}.png".format(scaled_vid, q, os.path.join(temp_dir, "%03d")))
-
-def fetch_original_images(out_dir, frames, original_vid):
-  q = "eq(n\,{0})".format(frames[0])
-  for frame in frames[1:]:
-    q += "+eq(n\,{0})".format(frame)
-
-  os.system('ffmpeg -i {0} -vf "select={1}" -vsync 0 -frame_pts 1 {2}.jpg'.format(original_vid, q, os.path.join(out_dir, "%d")))
+def fetch_original_images(out_dir, frames, original_vid, video_processor):
+  video_processor.get_frame_images(original_vid, out_dir, frames)
 
   # rename all the images with their timestamps
   # File name templae: Species_Location_Date_OriginalVideoframe#_screencapture#_VideoTimeStamp(MMSS)
@@ -107,12 +73,15 @@ def preds_to_range(preds):
 
   return ranges
 
-def run(original_video, output_dir, surface_model, quality_model, input_dir=None):
+def run(original_video, output_dir, surface_model, quality_model, video_processor, input_dir=None):
   original_video_name = os.path.basename(original_video).split(".")[0]
+
   # temp dirs
-  temp_dir1 = "temp_seconds"
-  temp_dir2 = "temp_surface"
-  clips_dir = "surfacing_clips"
+  temp_dir = "temp"
+  temp_dir1 = os.path.join(temp_dir, "temp_seconds")
+  temp_dir2 = os.path.join(temp_dir, "temp_surface")
+  clips_dir = os.path.join(output_dir, "surfacing_clips")
+  frames_dir = os.path.join(output_dir, "quality_frames")
 
   if not os.path.exists(temp_dir1):
     os.mkdir(temp_dir1)
@@ -123,15 +92,15 @@ def run(original_video, output_dir, surface_model, quality_model, input_dir=None
   if not os.path.exists(clips_dir):
     os.mkdir(clips_dir)
 
-  if not os.path.exists(output_dir):
-    os.mkdir(output_dir)
+  if not os.path.exists(frames_dir):
+    os.mkdir(frames_dir)
 
   # temp dirs for specific video 
   seconds_temp_dir = os.path.join(temp_dir1, original_video_name)
   surface_temp_dir = os.path.join(temp_dir2, original_video_name)
   clips_temp_dir = os.path.join(clips_dir, original_video_name)
   scaled_temp_video = "scaled_{0}_224.mov".format(original_video_name)
-  final_out_dir = os.path.join(output_dir, original_video_name)
+  final_out_dir = os.path.join(frames_dir, original_video_name)
 
   if not os.path.exists(seconds_temp_dir):
     os.mkdir(seconds_temp_dir)
@@ -148,11 +117,11 @@ def run(original_video, output_dir, surface_model, quality_model, input_dir=None
   # convert original video to scaled
   if not os.path.exists(scaled_temp_video):
     print("Scaling down original video {0} to {1}".format(original_video, scaled_temp_video))
-    convert_original_video_to_scaled(original_video, scaled_temp_video)
+    video_processor.scale_video(original_video, scaled_temp_video, 224)
 
   # extract per second
   print("Extracting per second frames from {0} to {1}".format(scaled_temp_video, seconds_temp_dir))
-  extract_per_second_frames(seconds_temp_dir, scaled_temp_video)
+  video_processor.get_per_second_frames(scaled_temp_video, seconds_temp_dir)
 
   # This is the surface dir
   dirs = os.listdir(seconds_temp_dir)
@@ -165,15 +134,15 @@ def run(original_video, output_dir, surface_model, quality_model, input_dir=None
 
   # given surfacing predictions, get range of frames to fetch
   surfacing_ranges = preds_to_range(surfacing_series)
-  print(surfacing_ranges)
-  extract_frame_range(surface_temp_dir, surfacing_ranges, scaled_temp_video)
+  print(surfacing_ranges) # TODO - write to file.
+
+  # get frames of surfacing shots, but on the scaled video
+  video_processor.get_frame_range_images(scaled_temp_video, surface_temp_dir, surfacing_ranges)
 
   # get surfacing clips
-  extract_frame_range_clip(clips_temp_dir, surfacing_ranges, original_video)
+  video_processor.get_frame_range_clips(original_video, clips_temp_dir, surfacing_ranges)
   
   # predict quality on the extracted images.
-  # load quality model
-  
   print("Predicting quality of images in {0}".format(surface_temp_dir))
 
   # load temporary 
@@ -189,7 +158,7 @@ def run(original_video, output_dir, surface_model, quality_model, input_dir=None
   # finally, given list of successful frames, fetch the original image
   if len(quality_preds) > 0:
     print("Total of {0} frames of acceptable quality detected".format(len(quality_preds)))
-    fetch_original_images(final_out_dir, quality_preds, original_video)
+    fetch_original_images(final_out_dir, quality_preds, original_video, video_processor)
   else:
     print("No suitable frames found! :(")
 
@@ -201,5 +170,14 @@ if __name__ == "__main__":
   surface_model = model_pytorch("model/pytorch/surface_model9-5-2020.pth")
   quality_model = model_pytorch("model/pytorch/quality_model9-5-2020.pth")
 
-  run(sys.argv[1], sys.argv[2], surface_model, quality_model)
+  input_vid = os.path.normpath(sys.argv[1])
+  output_dir = os.path.normpath(sys.argv[2])
+
+  # init video processor
+  video_processor = ffmpeg_processor()
+
+  if not os.path.exists(output_dir):
+    os.mkdir(output_dir)
+
+  run(input_vid, output_dir, surface_model, quality_model, video_processor)
   print("End run. Output written to dir {0} : {1}".format(sys.argv[2], time.strftime("%H:%M:%S", time.localtime())))

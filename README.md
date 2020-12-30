@@ -15,7 +15,7 @@ The following dependencies must be installed for the program to run:
 - ffmpeg (for video processing)
 - pytorch (for ML models)
 
-It is also recommended to run this on a machine with a CUDA compatible GPU.
+It is also recommended to run this on a machine with a CUDA compatible GPU for speed.
 
 ## Run Settings
 
@@ -39,3 +39,17 @@ python run.py "<video path>" "<quality frames output directory>"
 python3 run.py "<video path>" "<quality frames output directory>"
 
 ```
+
+
+## Overview of Codebase
+
+TBC
+
+- classification models located in /models
+- video processing tool located in /video
+
+Users are welcome to implement their own classification models and/or video processing tools provided they inherit the required functions in the base classes. 
+
+## Limitations
+
+Some limitations to be aware of when using this tool. 
