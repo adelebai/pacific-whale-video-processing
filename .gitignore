@@ -1,4 +1,4 @@
 /data
-/surfacing_clips
-/temp_*
+/temp
+/out
 **/*.pyc

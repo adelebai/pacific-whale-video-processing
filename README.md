@@ -17,26 +17,26 @@ The following dependencies must be installed for the program to run:
 
 It is also recommended to run this on a machine with a CUDA compatible GPU for speed.
 
-## Run Settings
+## Run Settings & Output
 
-The program outputs 3 different things:
+The program outputs 3 different things into a specified folder:
 1. a file containing video timestamps of a whale surfacing (TBC)
-2. a set of video clips extracted from the original video containing moments of whale surfacing (output to */surfacing_clips*)
-3. a set of images extracted from the original video containing high quality frames of the whale (output directory specified)
+2. a set of video clips extracted from the original video containing moments of whale surfacing (output to **/surfacing_clips**)
+3. a set of images extracted from the original video containing high quality frames of the whale (output to **/quality_frames**)
 
 In terms of computational cost, (2) and (3) are more expensive to output. Depending on the needs, one can switch them off for speed (TBC). By default, all 3 outputs are on. 
 
 ## How to Run (Windows)
 
 ```
-python run.py "<video path>" "<quality frames output directory>"
+python run.py "<video path>" "<output directory>"
 
 ```
 
 ## How to Run (Linux)
 
 ```
-python3 run.py "<video path>" "<quality frames output directory>"
+python3 run.py "<video path>" "<output directory>"
 
 ```
 
@@ -52,4 +52,4 @@ Users are welcome to implement their own classification models and/or video proc
 
 ## Limitations
 
-Some limitations to be aware of when using this tool. 
+Some limitations to be aware of when using this tool. TBC.

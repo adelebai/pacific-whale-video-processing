@@ -83,6 +83,9 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
   clips_dir = os.path.join(output_dir, "surfacing_clips")
   frames_dir = os.path.join(output_dir, "quality_frames")
 
+  if not os.path.exists(temp_dir):
+    os.mkdir(temp_dir)
+
   if not os.path.exists(temp_dir1):
     os.mkdir(temp_dir1)
 
@@ -180,4 +183,4 @@ if __name__ == "__main__":
     os.mkdir(output_dir)
 
   run(input_vid, output_dir, surface_model, quality_model, video_processor)
-  print("End run. Output written to dir {0} : {1}".format(sys.argv[2], time.strftime("%H:%M:%S", time.localtime())))
+  print("End run. Output written to directory {0} : {1}".format(sys.argv[2], time.strftime("%H:%M:%S", time.localtime())))
