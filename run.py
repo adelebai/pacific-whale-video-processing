@@ -15,6 +15,10 @@ def frames_to_ts(frame_number, fps=30):
   span = timedelta(milliseconds= frame_number*1000/fps)
   return "{:02d}{:02d}{:02d}".format(int(span.seconds/60), int(span.seconds%60), int(span.microseconds/1000))
 
+def seconds_to_ts(seconds_number):
+  span = timedelta(seconds= seconds_number)
+  return "{:02d}:{:02d}".format(int(span.seconds/60), int(span.seconds%60))
+
 def get_final_image_name(original_vid, out_dir, frame, number):
   # File name templae: Species_Location_Date_OriginalVideoframe#_screencapture#_VideoTimeStamp(MMSS)
   # File name example: MN_HI_20200824_0001_001_0301
@@ -72,6 +76,15 @@ def preds_to_range(preds):
     ranges.append((current, c))
 
   return ranges
+
+def write_ranges_to_file(video_name, ranges, output_dir):
+  output_file_name = os.path.join(output_dir, "{0}_surfacing_intervals.txt".format(video_name))
+
+  if len(ranges) > 0:
+    with open(output_file_name, 'w') as f:
+      for r in ranges:
+        write_line = "{0} - {1}\n".format(seconds_to_ts(r[0]), seconds_to_ts(r[1]))
+        f.write(write_line)
 
 def run(original_video, output_dir, surface_model, quality_model, video_processor, input_dir=None):
   original_video_name = os.path.basename(original_video).split(".")[0]
@@ -137,7 +150,8 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
 
   # given surfacing predictions, get range of frames to fetch
   surfacing_ranges = preds_to_range(surfacing_series)
-  print(surfacing_ranges) # TODO - write to file.
+  print("Writing surfacing intervals to file {0}".format(original_video_name))
+  write_ranges_to_file(original_video_name, surfacing_ranges, output_dir)
 
   # get frames of surfacing shots, but on the scaled video
   video_processor.get_frame_range_images(scaled_temp_video, surface_temp_dir, surfacing_ranges)
