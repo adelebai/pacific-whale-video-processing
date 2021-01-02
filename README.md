@@ -47,20 +47,17 @@ TBC
 
 - classification models located in /models
 - video processing tool located in /video
-- model training scripts located in /training_scripts
+- model training scripts located in /training_scripts (TBC)
 
 Users are welcome to implement their own classification models and/or video processing tools provided they inherit the required functions in the base classes. 
 
 ## Overview of Models
 
-A few models were tested and the best design/model was chosen as described below. 
+A few models were tested and the best design/model was chosen as described below. Samples of the training data are available in /training_scripts. 
 
 Surfacing Model - this model classifies a frame into 5 different categories of surfacing. 
 Quality Model - this model classifies a frame into 2 categories. 
 
-### Model Training Script
-
-TBC - derived from space-whale but modified slightly for multi-feature classification.
 
 ## Limitations
 

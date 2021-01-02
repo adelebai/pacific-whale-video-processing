@@ -218,7 +218,7 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
 
   print("Writing surfacing intervals to file {0}".format(original_video_name))
   write_ranges_to_file(original_video_name, surfacing_ranges, output_dir)
-  """
+
   # get frames of surfacing shots, but on the scaled video
   video_processor.get_frame_range_images(scaled_temp_video, surface_temp_dir, surfacing_ranges)
 
@@ -244,7 +244,6 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
     fetch_original_images(final_out_dir, quality_preds, original_video, video_processor)
   else:
     print("No suitable frames found! :(")
-  """
 
 
 if __name__ == "__main__":
