@@ -77,6 +77,68 @@ def preds_to_range(preds):
 
   return ranges
 
+# non binary predictions to a surfacing range. 
+# returns a 0,1 array of surfacing clips.
+# the nb classifications are:
+# 0- not visible, 1- visible but submerged, 2,3,4 - surfacing stages. 
+# based on this, we can try to extract surfacing ranges based on surrounding classifications.
+# e.g. 0 0 4 0 0 is more likely to be a non surface (and 4 a faulty prediction)
+# 2 2 3 3 0 4 4 4 is more likely to be a surface (and 0 a faulty prediction)
+# We expect a typical surfacing to have this pattern: 1 2 3 4 1 
+def preds_to_range_nb(preds):
+  size_preds = len(preds)
+  std_preds = [0]*size_preds # init to 0
+
+  active = False
+  for i in range(size_preds):
+    if preds[i] == 1:
+      if active:
+        active = False
+    if preds[i] == 2 or preds[i] == 3 or preds[i] == 4:
+      if preds[i] == 4: # not a valid start, but a valid continuation.
+        if active:
+          std_preds[i] = 1
+      else: # 2 or 3, valid start
+        if not active:
+          active = True
+        std_preds[i] = 1
+
+  fixed_preds = []
+  c = 0
+  for i in std_preds:
+    if i == 1:
+      fixed_preds.append(i)
+    else:
+      if c != 0 and c != size_preds-1:
+        if std_preds[c-1] == 1 and std_preds[c+1] == 1:
+          fixed_preds.append(1) #adjust only if neighbours are also 1
+        else:
+          fixed_preds.append(i)
+    c+=1
+
+  ranges = []
+  current = 0
+  active = False
+  c = 0 # this is actually the seconds
+  for i in fixed_preds:
+    if i == 0:
+      if active:
+        ranges.append((current, c))
+        active = False
+    else:
+      # i = 1, keep track
+      if not active:
+        current = c
+        active = True
+
+    c += 1
+
+  if active:
+    ranges.append((current, c))
+
+  return ranges
+
+
 def write_ranges_to_file(video_name, ranges, output_dir):
   output_file_name = os.path.join(output_dir, "{0}_surfacing_intervals.txt".format(video_name))
 
@@ -149,10 +211,14 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
     surfacing_series.append(surface_pred)
 
   # given surfacing predictions, get range of frames to fetch
-  surfacing_ranges = preds_to_range(surfacing_series)
+  if surface_model.get_number_of_features() == 2:
+    surfacing_ranges = preds_to_range(surfacing_series)
+  else:
+    surfacing_ranges = preds_to_range_nb(surfacing_series)
+
   print("Writing surfacing intervals to file {0}".format(original_video_name))
   write_ranges_to_file(original_video_name, surfacing_ranges, output_dir)
-
+  """
   # get frames of surfacing shots, but on the scaled video
   video_processor.get_frame_range_images(scaled_temp_video, surface_temp_dir, surfacing_ranges)
 
@@ -178,13 +244,14 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
     fetch_original_images(final_out_dir, quality_preds, original_video, video_processor)
   else:
     print("No suitable frames found! :(")
+  """
 
 
 if __name__ == "__main__":
   print("Starting run on video {0} : {1}".format(sys.argv[1], time.strftime("%H:%M:%S", time.localtime())))
 
   # init models
-  surface_model = model_pytorch("model/pytorch/surface_model9-5-2020.pth")
+  surface_model = model_pytorch("model/pytorch/surface_model_nb1-1-2021.pth", 5)
   quality_model = model_pytorch("model/pytorch/quality_model9-5-2020.pth")
 
   input_vid = os.path.normpath(sys.argv[1])

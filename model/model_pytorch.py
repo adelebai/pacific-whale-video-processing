@@ -12,19 +12,20 @@ from model.model_base import model_base
 
 # implementation of model on pytorch.
 class model_pytorch(model_base):
-  def __init__(self, model_name):
+  def __init__(self, model_name, num_features=2):
     model_base.__init__(self) # init base class
 
     #set gpu
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
-    model_ft = self.get_resnet18()
+    model_ft = self.get_resnet18(num_features)
     model_ft = model_ft.to(device)
     model_ft.load_state_dict(torch.load(model_name))
     model_ft.eval() #this sets the model to "evaluate" mode.
 
     self.model = model_ft
+    self.num_features = num_features
 
     # set transformation - this will largely depend on the model and the transforms used during training.
     self.transforms = transforms.Compose([     
@@ -35,6 +36,8 @@ class model_pytorch(model_base):
 
     print("Finished loading model from file {0}".format(model_name))
 
+  def get_number_of_features(self):
+    return self.num_features
 
   def predict(self, image_path):
     image_pil = Image.open(image_path)
@@ -43,8 +46,8 @@ class model_pytorch(model_base):
     _,preds = torch.max(model_pred,1)
     return preds[0]
 
-  def get_resnet18(self):
+  def get_resnet18(self, num_features):
     temp_model = models.resnet18(pretrained=True)
     num_ftrs = temp_model.fc.in_features
-    temp_model.fc = nn.Linear(num_ftrs, 2)
+    temp_model.fc = nn.Linear(num_ftrs, num_features)
     return temp_model

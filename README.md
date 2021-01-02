@@ -20,7 +20,7 @@ It is also recommended to run this on a machine with a CUDA compatible GPU for s
 ## Run Settings & Output
 
 The program outputs 3 different things into a specified folder:
-1. a file containing video timestamps of a whale surfacing (TBC)
+1. a file containing video timestamps of a whale surfacing (output to .txt file **videoname** _surfacing_clip.txt)
 2. a set of video clips extracted from the original video containing moments of whale surfacing (output to **/surfacing_clips**)
 3. a set of images extracted from the original video containing high quality frames of the whale (output to **/quality_frames**)
 
@@ -47,8 +47,20 @@ TBC
 
 - classification models located in /models
 - video processing tool located in /video
+- model training scripts located in /training_scripts
 
 Users are welcome to implement their own classification models and/or video processing tools provided they inherit the required functions in the base classes. 
+
+## Overview of Models
+
+A few models were tested and the best design/model was chosen as described below. 
+
+Surfacing Model - this model classifies a frame into 5 different categories of surfacing. 
+Quality Model - this model classifies a frame into 2 categories. 
+
+### Model Training Script
+
+TBC - derived from space-whale but modified slightly for multi-feature classification.
 
 ## Limitations
 
