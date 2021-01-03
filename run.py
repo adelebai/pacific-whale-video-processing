@@ -89,18 +89,20 @@ def preds_to_range_nb(preds):
   size_preds = len(preds)
   std_preds = [0]*size_preds # init to 0
 
-  active = False
+
   for i in range(size_preds):
-    if preds[i] == 1:
-      if active:
-        active = False
     if preds[i] == 2 or preds[i] == 3 or preds[i] == 4:
-      if preds[i] == 4: # not a valid start, but a valid continuation.
-        if active:
-          std_preds[i] = 1
-      else: # 2 or 3, valid start
-        if not active:
-          active = True
+      if preds[i] == 4: # valid start but invalid if surrounded by 1/0
+        if i == size_preds - 1:
+          # look at previous
+          if preds[i-1] in [2,3,4]:
+            std_preds[i] = 1
+        else:
+          # look at next
+          if preds[i-1] in [2,3,4]:
+            std_preds[i] = 1
+
+      else: # 2 or 3, valid start and valid stand-alone.
         std_preds[i] = 1
 
   fixed_preds = []
@@ -128,7 +130,7 @@ def preds_to_range_nb(preds):
     else:
       # i = 1, keep track
       if not active:
-        current = c
+        current = c if c <= 1 else c-1
         active = True
 
     c += 1
