@@ -26,20 +26,38 @@ The program outputs 3 different things into a specified folder:
 
 In terms of computational cost, (2) and (3) are more expensive to output. Depending on the needs, one can switch them off for speed (TBC). By default, all 3 outputs are on. 
 
+## Install Instructions
+
+There is no installation. Clone the repository and see "How to Run" section below. 
+
+
 ## How to Run (Windows)
 
-```
-python run.py "<video path>" "<output directory>"
+Open up a terminal. Cd into the root directory of this repo (i.e. directory containing run.py).
 
+To run on a single video:
+```
+python run.py -file "<video path>" -out "<output directory>"
+
+```
+
+To run on a folder of videos:
+```
+python run.py -folder "<path to video folder>" -out "<output directory>"
 ```
 
 ## How to Run (Linux)
 
+To run on a single video:
 ```
-python3 run.py "<video path>" "<output directory>"
+python3 run.py -file "<video path>" -out "<output directory>"
 
 ```
 
+To run on a folder of videos:
+```
+python3 run.py -folder "<path to video folder>" -out "<output directory>"
+```
 
 ## Overview of Codebase
 

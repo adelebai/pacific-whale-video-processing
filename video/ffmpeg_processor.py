@@ -2,6 +2,7 @@
 This class wraps the ffmpeg video processor on the command line.
 """
 
+import math
 import os
 from video.video_processor_base import video_processor_base
 
@@ -65,13 +66,18 @@ class ffmpeg_processor(video_processor_base):
   def get_frame_images(self, original_video, out_dir, frames):
     """
     Given a list of frame numbers, extracts those frames from the video (original_video).
-    Writes said frames to out_dir
+    Writes said frames to out_dir.
+    For ffmpeg extracts 500 at a time as there are command line character limits.
     """
     if len(frames) == 0:
       return
 
-    q = "eq(n\,{0})".format(frames[0])
-    for frame in frames[1:]:
-      q += "+eq(n\,{0})".format(frame)
+    batch_size = 500
+    batches = math.ceil(len(frames)/batch_size)
 
-    os.system('ffmpeg -i {0} -vf "select={1}" -vsync 0 -frame_pts 1 {2}.jpg'.format(original_video, q, os.path.join(out_dir, "%d")))
+    for i in range(batches):
+      q = "eq(n\,{0})".format(frames[i*batch_size])
+      for frame in frames[(i*batch_size + 1):((i+1)*batch_size)]:
+        q += "+eq(n\,{0})".format(frame)
+
+      os.system('ffmpeg -i {0} -vf "select={1}" -vsync 0 -frame_pts 1 {2}.jpg'.format(original_video, q, os.path.join(out_dir, "%d")))

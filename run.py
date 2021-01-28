@@ -247,16 +247,33 @@ def run(original_video, output_dir, surface_model, quality_model, video_processo
   else:
     print("No suitable frames found! :(")
 
-
+import argparse
 if __name__ == "__main__":
-  print("Starting run on video {0} : {1}".format(sys.argv[1], time.strftime("%H:%M:%S", time.localtime())))
+  # Handle argparsing
+  parser = argparse.ArgumentParser(description='Process whale videos.')
+  parser.add_argument("-folder", required=False, help="Path to folder containing a set of videos to process.")
+  parser.add_argument("-file", required=False, help="Path to video file to process.")
+  parser.add_argument("-out", required=True, help="Path to output folder where processed data will be written.")
+
+  args = parser.parse_args()
+
+  # check that either --folder or --file were supplied
+  if args.folder == None and args.file == None:
+    print("Error: Please supply either a -folder or -file for processing.")
+    raise 
+
+  input_dir = ""
+  if args.folder:
+    input_dir = os.path.normpath(args.folder)
+    print("Starting run on folder {0} : {1}".format(args.folder, time.strftime("%H:%M:%S", time.localtime())))
+  else:
+    print("Starting run on video {0} : {1}".format(args.file, time.strftime("%H:%M:%S", time.localtime())))
 
   # init models
   surface_model = model_pytorch("model/pytorch/surface_model_nb1-1-2021.pth", 5)
   quality_model = model_pytorch("model/pytorch/quality_model9-5-2020.pth")
 
-  input_vid = os.path.normpath(sys.argv[1])
-  output_dir = os.path.normpath(sys.argv[2])
+  output_dir = os.path.normpath(args.out)
 
   # init video processor
   video_processor = ffmpeg_processor()
@@ -264,5 +281,21 @@ if __name__ == "__main__":
   if not os.path.exists(output_dir):
     os.mkdir(output_dir)
 
-  run(input_vid, output_dir, surface_model, quality_model, video_processor)
-  print("End run. Output written to directory {0} : {1}".format(sys.argv[2], time.strftime("%H:%M:%S", time.localtime())))
+  if args.folder:
+    if not os.path.exists(input_dir):
+      print("Error: Supplied input folder " + input_dir + " does not exist.")
+      raise
+
+  if args.folder:
+    # TODO - can probably parallelize although it will eat up gpu and possibly mem.
+    # iterate through folder contents
+    videos = os.listdir(input_dir)
+    for v in videos:
+      input_vid = os.path.join(input_dir, v)
+      run(input_vid, output_dir, surface_model, quality_model, video_processor)
+      print("Finished processing video: {0} : {1}", v, time.strftime("%H:%M:%S", time.localtime()))
+  else:
+    input_vid = os.path.normpath(args.file)
+    run(input_vid, output_dir, surface_model, quality_model, video_processor)
+
+  print("End run. Output written to directory {0} : {1}".format(args.out, time.strftime("%H:%M:%S", time.localtime())))
